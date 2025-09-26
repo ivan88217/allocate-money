@@ -42,6 +42,7 @@
 		"vite": "^7.0.4"
 	},
 	"dependencies": {
+		"@vercel/speed-insights": "^1.2.0",
 		"lucide-svelte": "^0.544.0",
 		"nanoid": "^5.0.7"
 	}
