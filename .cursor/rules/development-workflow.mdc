@@ -1,0 +1,45 @@
+---
+alwaysApply: true
+description: Development workflow and package management guidelines
+---
+
+# Development Workflow
+
+## Package Manager
+
+This project uses **Bun** as the package manager (not npm or yarn).
+
+### Common Commands
+
+- Install dependencies: `bun install`
+- Add dependency: `bun add [package-name]`
+- Run scripts: `bun run [script-name]`
+- Add dev dependency: `bun add -d [package-name]`
+
+## Dependency Management
+
+- Dependencies are managed in [package.json](mdc:package.json)
+- Lock file: [bun.lock](mdc:bun.lock) (auto-generated, commit this file)
+
+## Development Guidelines
+
+1. **Don't run dev servers**: The user handles deployment and build processes themselves
+2. **Don't run build commands**: Let the user manage builds and deployments
+3. **Focus on code changes**: Make code modifications and let the user handle execution
+
+## Environment Configuration
+
+- Environment variables are configured in `.env*` files
+- **Don't modify .env files**: Assume configuration is correct and read-only
+- Use `cat` to read environment files if needed, never edit them
+
+## Docker
+
+- Use new Docker Compose syntax (not docker-compose)
+- PostgreSQL is managed externally in Docker, not included in project's docker-compose
+
+## Code Quality
+
+- ESLint configuration: [eslint.config.js](mdc:eslint.config.js)
+- TypeScript configuration: [tsconfig.json](mdc:tsconfig.json)
+- Follow TypeScript strict typing rules

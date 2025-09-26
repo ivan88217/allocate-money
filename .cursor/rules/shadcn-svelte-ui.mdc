@@ -1,0 +1,42 @@
+---
+alwaysApply: true
+description: UI component library and structure guidelines
+globs: *.svelte,*.ts,*.js
+---
+
+# shadcn-svelte UI Component Library
+
+This project uses [shadcn-svelte](mdc:components.json) as the primary UI component library. All UI components follow the shadcn-svelte patterns and conventions.
+
+## Component Structure
+
+UI components are located in `src/lib/components/ui/` with the following structure:
+- Each component has its own directory (e.g., `button/`)
+- Main component file: `component.svelte`
+- Export file: `index.ts`
+
+Example: [Button component](mdc:src/lib/components/ui/button/button.svelte)
+
+## Usage Guidelines
+
+1. **Import from ui directory**: Always import components from their index files:
+   ```svelte
+   import { Button } from '$lib/components/ui/button';
+   ```
+
+2. **Component variants**: Use the variant props pattern for different styles:
+   ```svelte
+   <Button variant="destructive">Delete</Button>
+   ```
+
+3. **Styling**: Components use CSS variables and Tailwind classes. Customize in [app.css](mdc:src/app.css)
+
+4. **Adding new components**: Use the shadcn CLI to add components:
+   ```bash
+   bunx --bun shadcn-svelte@latest add [component-name]
+   ```
+
+## Available Components
+
+Currently available: [Button](mdc:src/lib/components/ui/button/)
+Add more components as needed using the shadcn CLI tool.

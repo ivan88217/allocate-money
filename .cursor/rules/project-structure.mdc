@@ -1,0 +1,43 @@
+---
+alwaysApply: true
+description: Project structure and TypeScript coding conventions
+---
+
+# Project Structure Guide
+
+## File Organization
+
+- **Routes**: Located in `src/routes/` using SvelteKit file-based routing
+  - Main layout: [+layout.svelte](mdc:src/routes/+layout.svelte)
+  - Home page: [+page.svelte](mdc:src/routes/+page.svelte)
+
+- **Components**: Located in `src/lib/components/`
+  - UI components: `ui/` (shadcn-svelte components)
+  - Custom components: organized by feature/domain
+
+- **Utilities**: Located in `src/lib/`
+  - [utils.ts](mdc:src/lib/utils.ts) - shared utility functions
+  - [hooks/](mdc:src/lib/hooks/) - custom Svelte hooks
+
+- **Assets**: Located in `src/lib/assets/`
+  - Static assets like favicons
+
+- **Styling**: [app.css](mdc:src/app.css) - global styles and CSS variables
+
+## TypeScript Conventions
+
+1. **Avoid `any` types**: Always use explicit types or proper TypeScript generics
+2. **Use strict typing**: Leverage TypeScript's type system for better code safety
+3. **Import types properly**: Use `import type` for type-only imports
+
+## Database
+
+- **Prisma**: Database schema and migrations in [prisma/](mdc:prisma/)
+- **Schema**: [schema.prisma](mdc:prisma/schema.prisma) - database model definitions
+
+## Configuration Files
+
+- [tsconfig.json](mdc:tsconfig.json) - TypeScript configuration
+- [vite.config.ts](mdc:vite.config.ts) - Vite build configuration
+- [svelte.config.js](mdc:svelte.config.js) - SvelteKit configuration
+- [components.json](mdc:components.json) - shadcn-svelte configuration
