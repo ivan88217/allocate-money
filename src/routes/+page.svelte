@@ -232,7 +232,7 @@
 		return !firstError;
 	}
 
-	function handleCalculate() {
+	async function handleCalculate() {
 		console.log('handleCalculate');
 		if (!validate()) {
 			console.log('validate failed');
@@ -243,6 +243,12 @@
 			const allocationResult = allocateAmounts(finalTotal, normalizeParticipants());
 			result = allocationResult;
 			errorMessage = null;
+			// 等待 DOM 更新後捲動到結果區域
+			await tick();
+			const resultCard = document.getElementById('result-card');
+			if (resultCard) {
+				resultCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+			}
 		} catch (error) {
 			result = null;
 			errorMessage = error instanceof Error ? error.message : '發生未知錯誤';
@@ -417,7 +423,7 @@
 		</p>
 	{/if}
 	{#if result}
-		<Card>
+		<Card id="result-card">
 			<CardHeader class="space-y-1">
 				<CardTitle class="text-xl">分配結果</CardTitle>
 				<CardDescription>
