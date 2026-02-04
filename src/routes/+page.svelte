@@ -52,7 +52,7 @@
 			...participants,
 			{
 				id: newParticipantId,
-				name: String.fromCharCode(65 + participants.length),
+				name: '',
 				originalAmount: 0
 			}
 		];
