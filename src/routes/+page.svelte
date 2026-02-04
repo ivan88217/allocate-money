@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { nanoid } from 'nanoid';
+	import { tick } from 'svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import {
@@ -26,6 +27,8 @@
 	let participants: ParticipantFormRow[] = [...initialParticipants];
 	let finalTotal = 0;
 	let errorMessage: string | null = null;
+	// 追蹤每個參與者金額輸入框的顯示值（用於處理 0 值的顯示）
+	const amountDisplayValues = new Map<string, string>();
 	let result: {
 		rows: AllocationRow[];
 		finalTotal: number;
@@ -43,15 +46,22 @@
 		result = null;
 	}
 
-	function addParticipant() {
+	async function addParticipant() {
+		const newParticipantId = nanoid();
 		participants = [
 			...participants,
 			{
-				id: nanoid(),
+				id: newParticipantId,
 				name: String.fromCharCode(65 + participants.length),
 				originalAmount: 0
 			}
 		];
+		// 等待 DOM 更新後聚焦到新成員的名稱輸入框
+		await tick();
+		const nameInput = document.querySelector(
+			`input[data-participant-id="${newParticipantId}"][data-field="name"]`
+		) as HTMLInputElement;
+		nameInput?.focus();
 	}
 
 	function removeParticipant(id: string) {
@@ -70,6 +80,39 @@
 					}
 				: participant
 		);
+	}
+
+	function handleAmountFocus(event: Event, participantId: string) {
+		const input = event.currentTarget as HTMLInputElement;
+		const participant = participants.find((p) => p.id === participantId);
+		if (participant && participant.originalAmount === 0) {
+			amountDisplayValues.set(participantId, '');
+			input.value = '';
+		}
+	}
+
+	function handleAmountBlur(event: Event, participantId: string) {
+		const input = event.currentTarget as HTMLInputElement;
+		const value = input.value.trim();
+		if (value === '' || isNaN(Number.parseInt(value, 10))) {
+			// 直接設置輸入框值為 0
+			input.value = '0';
+			// 清除顯示值，讓 Svelte 使用實際值
+			amountDisplayValues.delete(participantId);
+			// 更新狀態為 0
+			updateParticipantAmount(participantId, '0');
+		} else {
+			const numValue = Number.parseInt(value, 10);
+			updateParticipantAmount(participantId, value);
+			amountDisplayValues.delete(participantId);
+		}
+	}
+
+	function getAmountDisplayValue(participantId: string, originalAmount: number): number | string {
+		if (amountDisplayValues.has(participantId)) {
+			return amountDisplayValues.get(participantId) || '';
+		}
+		return originalAmount;
 	}
 
 	function updateParticipantName(id: string, value: string) {
@@ -162,7 +205,14 @@
 		<CardContent class="grid gap-4">
 			<label class="grid gap-2">
 				<span class="text-sm font-medium">折扣後總金額</span>
-				<Input type="number" bind:value={finalTotal} placeholder="例如 500" min="0" />
+				<Input
+					type="number"
+					bind:value={finalTotal}
+					placeholder="例如 500"
+					min="0"
+					inputmode="numeric"
+					pattern="[0-9]*"
+				/>
 			</label>
 			<div class="space-y-3">
 				<div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -181,18 +231,38 @@
 										oninput={(event) =>
 											updateParticipantName(participant.id, event.currentTarget.value)}
 										placeholder="請輸入名稱"
+										data-participant-id={participant.id}
+										data-field="name"
 									/>
 								</label>
 								<label class="grid gap-1 text-xs font-medium text-muted-foreground">
 									<span>原始金額</span>
 									<Input
 										type="number"
-										value={participant.originalAmount}
-										oninput={(event) =>
-											updateParticipantAmount(participant.id, event.currentTarget.value)}
+										value={getAmountDisplayValue(participant.id, participant.originalAmount)}
+										oninput={(event) => {
+											const value = event.currentTarget.value;
+											amountDisplayValues.set(participant.id, value);
+											updateParticipantAmount(participant.id, value);
+										}}
+										onfocus={(event) => handleAmountFocus(event, participant.id)}
+										onblur={(event) => handleAmountBlur(event, participant.id)}
+										onkeydown={async (event) => {
+											const isLastParticipant = participants[participants.length - 1].id === participant.id;
+											if (event.key === 'Tab' && !event.shiftKey && isLastParticipant) {
+												event.preventDefault();
+												event.stopPropagation();
+												event.stopImmediatePropagation();
+												await addParticipant();
+											}
+										}}
 										min="0"
 										step="1"
 										placeholder="例如 250"
+										inputmode="numeric"
+										pattern="[0-9]*"
+										data-participant-id={participant.id}
+										data-field="amount"
 									/>
 								</label>
 							</CardContent>
@@ -203,6 +273,7 @@
 									onclick={() => removeParticipant(participant.id)}
 									disabled={participants.length <= 1}
 									class="w-full sm:w-auto"
+									tabindex={-1}
 								>
 									移除
 								</Button>
