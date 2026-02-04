@@ -212,6 +212,7 @@
 					min="0"
 					inputmode="numeric"
 					pattern="[0-9]*"
+					lang="en"
 				/>
 			</label>
 			<div class="space-y-3">
@@ -261,6 +262,7 @@
 										placeholder="例如 250"
 										inputmode="numeric"
 										pattern="[0-9]*"
+										lang="en"
 										data-participant-id={participant.id}
 										data-field="amount"
 									/>
@@ -335,11 +337,6 @@
 						</tbody>
 					</table>
 				</div>
-				<p class="text-xs text-muted-foreground">
-					加總後共 {result.rows
-						.reduce((accumulator, row) => accumulator + row.allocatedAmount, 0)
-						.toLocaleString()} 元，源自剩餘 {result.leftoverBeforeDistribution} 元的逐一分派。
-				</p>
 			</CardContent>
 		</Card>
 	{/if}
