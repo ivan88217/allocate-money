@@ -71,6 +71,33 @@
 		participants = participants.filter((participant) => participant.id !== id);
 	}
 
+	/**
+	 * 安全地評估數學表達式（只允許數字和基本運算符）
+	 */
+	function evaluateExpression(expression: string): number {
+		// 移除所有空格
+		const cleaned = expression.replace(/\s/g, '');
+		
+		// 只允許數字、小數點、括號和基本運算符
+		if (!/^[0-9+\-*/().\s]+$/.test(cleaned)) {
+			throw new Error('表達式包含無效字符');
+		}
+		
+		try {
+			// 使用 Function 構造函數安全地評估表達式
+			// 這比 eval 更安全，因為它不會訪問外部作用域
+			const result = Function(`"use strict"; return (${cleaned})`)();
+			
+			if (typeof result !== 'number' || !Number.isFinite(result)) {
+				throw new Error('計算結果無效');
+			}
+			
+			return result;
+		} catch (error) {
+			throw new Error('表達式計算錯誤');
+		}
+	}
+
 	function updateParticipantAmount(id: string, value: string) {
 		participants = participants.map((participant) =>
 			participant.id === id
@@ -94,17 +121,49 @@
 	function handleAmountBlur(event: Event, participantId: string) {
 		const input = event.currentTarget as HTMLInputElement;
 		const value = input.value.trim();
-		if (value === '' || isNaN(Number.parseInt(value, 10))) {
+		
+		if (value === '') {
 			// 直接設置輸入框值為 0
 			input.value = '0';
 			// 清除顯示值，讓 Svelte 使用實際值
 			amountDisplayValues.delete(participantId);
 			// 更新狀態為 0
 			updateParticipantAmount(participantId, '0');
+			return;
+		}
+		
+		// 檢查是否包含運算符（+、-、*、/）
+		const hasOperator = /[+\-*/]/.test(value);
+		
+		if (hasOperator) {
+			// 嘗試評估表達式
+			try {
+				const result = evaluateExpression(value);
+				const roundedResult = Math.round(result); // 金額取整數
+				
+				// 更新輸入框顯示計算結果
+				input.value = String(roundedResult);
+				// 清除顯示值，讓 Svelte 使用實際值
+				amountDisplayValues.delete(participantId);
+				// 更新狀態
+				updateParticipantAmount(participantId, String(roundedResult));
+			} catch (error) {
+				// 如果表達式無效，恢復為 0
+				input.value = '0';
+				amountDisplayValues.delete(participantId);
+				updateParticipantAmount(participantId, '0');
+			}
 		} else {
+			// 普通數字輸入
 			const numValue = Number.parseInt(value, 10);
-			updateParticipantAmount(participantId, value);
-			amountDisplayValues.delete(participantId);
+			if (isNaN(numValue)) {
+				input.value = '0';
+				amountDisplayValues.delete(participantId);
+				updateParticipantAmount(participantId, '0');
+			} else {
+				updateParticipantAmount(participantId, value);
+				amountDisplayValues.delete(participantId);
+			}
 		}
 	}
 
@@ -206,12 +265,65 @@
 			<label class="grid gap-2">
 				<span class="text-sm font-medium">折扣後總金額</span>
 				<Input
-					type="number"
-					bind:value={finalTotal}
-					placeholder="例如 500"
-					min="0"
+					type="text"
+					value={finalTotal === 0 ? '' : String(finalTotal)}
+					oninput={(event) => {
+						const value = event.currentTarget.value.trim();
+						if (value === '') {
+							finalTotal = 0;
+							return;
+						}
+						// 檢查是否包含運算符
+						if (/[+\-*/]/.test(value)) {
+							try {
+								const result = evaluateExpression(value);
+								finalTotal = Math.round(result);
+							} catch {
+								// 如果表達式無效，暫時不更新
+							}
+						} else {
+							const numValue = Number.parseInt(value, 10);
+							if (!isNaN(numValue)) {
+								finalTotal = numValue;
+							}
+						}
+					}}
+					onblur={(event) => {
+						const input = event.currentTarget as HTMLInputElement;
+						const value = input.value.trim();
+						if (value === '') {
+							finalTotal = 0;
+							input.value = '0';
+							return;
+						}
+						if (/[+\-*/]/.test(value)) {
+							try {
+								const result = evaluateExpression(value);
+								finalTotal = Math.round(result);
+								input.value = String(finalTotal);
+							} catch {
+								finalTotal = 0;
+								input.value = '0';
+							}
+						} else {
+							const numValue = Number.parseInt(value, 10);
+							if (isNaN(numValue)) {
+								finalTotal = 0;
+								input.value = '0';
+							} else {
+								finalTotal = numValue;
+								input.value = String(finalTotal);
+							}
+						}
+					}}
+					onkeydown={(event) => {
+						if (event.key === 'Enter') {
+							event.preventDefault();
+							(event.currentTarget as HTMLInputElement).blur();
+						}
+					}}
+					placeholder="例如 500 或 400+100"
 					inputmode="numeric"
-					pattern="[0-9]*"
 					lang="en"
 				/>
 			</label>
@@ -239,12 +351,12 @@
 								<label class="grid gap-1 text-xs font-medium text-muted-foreground">
 									<span>原始金額</span>
 									<Input
-										type="number"
+										type="text"
 										value={getAmountDisplayValue(participant.id, participant.originalAmount)}
 										oninput={(event) => {
 											const value = event.currentTarget.value;
 											amountDisplayValues.set(participant.id, value);
-											updateParticipantAmount(participant.id, value);
+											// 暫時不更新數值，等失去焦點時再計算
 										}}
 										onfocus={(event) => handleAmountFocus(event, participant.id)}
 										onblur={(event) => handleAmountBlur(event, participant.id)}
@@ -256,12 +368,14 @@
 												event.stopImmediatePropagation();
 												await addParticipant();
 											}
+											// 允許 Enter 鍵觸發計算
+											if (event.key === 'Enter') {
+												event.preventDefault();
+												(event.currentTarget as HTMLInputElement).blur();
+											}
 										}}
-										min="0"
-										step="1"
-										placeholder="例如 250"
+										placeholder="例如 250 或 100+50"
 										inputmode="numeric"
-										pattern="[0-9]*"
 										lang="en"
 										data-participant-id={participant.id}
 										data-field="amount"
